@@ -16,73 +16,66 @@ async function getResponse(req: NextRequest): Promise<NextResponse> {
     accountAddress = message.interactor.verified_accounts[0];
   }
 
-  // Extract text input from the frame message
-  if (message?.input) {
-    text = message.input;
-  }
-
-  // Handle redirect based on button clicked and conditions like 'liked'
-  if (message?.button === 3) {
-    // If 'Redirect to pictures' button is clicked and user has liked the post
-    if (message?.liked) {
-      return NextResponse.redirect(
-        'https://www.google.com/search?q=cute+dog+pictures&tbm=isch&source=lnms',
-        { status: 302 },
-      );
-    } else {
-      // User has clicked the button but hasn't liked the post, prompt them to like
-      return new NextResponse(
-        getFrameHtmlResponse({
-          buttons: [
-            {
-              label: 'Story time!',
-            },
-            {
-              action: 'link',
-              label: 'Link to Google',
-              target: 'https://www.google.com',
-            },
-            {
-              label: 'Like to unlock pictures',
-              action: 'post_redirect',
-            },
-          ],
-          image: {
-            src: `${NEXT_PUBLIC_URL}/park-3.png`,
-            aspectRatio: '1:1',
-          },
-          input: {
-            text: 'Tell me a boat story',
-          },
-          postUrl: `${NEXT_PUBLIC_URL}/api/frame`,
-        }),
-      );
+  // Check if the message has been liked before allowing text input
+  if (message?.liked) {
+    // Extract text input from the frame message
+    if (message?.input) {
+      text = message.input;
     }
-  }
 
-  // Return a new frame response with the preserved text input in the button label
-  return new NextResponse(
-    getFrameHtmlResponse({
-      buttons: [
-        {
-          label: `🌲☀️ ${text} 🌲🌲`,
+    // Return a new frame response with the text input in the button label if liked
+    return new NextResponse(
+      getFrameHtmlResponse({
+        buttons: [
+          {
+            label: `🌲☀️ ${text || 'Story time!'} 🌲🌲`,
+          },
+          {
+            action: 'link',
+            label: 'Link to Google',
+            target: 'https://www.google.com',
+          },
+          {
+            label: 'Redirect to pictures',
+            action: 'post_redirect',
+          },
+        ],
+        image: {
+          src: `${NEXT_PUBLIC_URL}/park-1.png`,
         },
-        {
-          action: 'link',
-          label: 'Link to Google',
-          target: 'https://www.google.com',
+        input: {
+          text: 'Tell me a boat story',
         },
-        {
-          label: 'Redirect to pictures',
-          action: 'post_redirect',
+        postUrl: `${NEXT_PUBLIC_URL}/api/frame`,
+      }),
+    );
+  } else {
+    // If the post hasn't been liked, do not show the text input
+    return new NextResponse(
+      getFrameHtmlResponse({
+        buttons: [
+          {
+            label: 'Story time!',
+          },
+          {
+            action: 'link',
+            label: 'Link to Google',
+            target: 'https://www.google.com',
+          },
+          {
+            label: 'Like to unlock stories',
+            action: 'post_redirect',
+          },
+        ],
+        image: {
+          src: `${NEXT_PUBLIC_URL}/park-3.png`,
+          aspectRatio: '1:1',
         },
-      ],
-      image: {
-        src: `${NEXT_PUBLIC_URL}/park-1.png`,
-      },
-      postUrl: `${NEXT_PUBLIC_URL}/api/frame`,
-    }),
-  );
+        // Notice how we're not including the `input` property here
+        postUrl: `${NEXT_PUBLIC_URL}/api/frame`,
+      }),
+    );
+  }
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
